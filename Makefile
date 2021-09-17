@@ -29,4 +29,7 @@ migratedown1:
 migrateredo:
 	make migratedown1 && make migrateup1
 
-.PHONY: run dev postgres sqlboiler migratedown migratedown1 migrateup migrateup1 migrateredo
+test:
+	go test -v -cover ./...
+
+.PHONY: run dev postgres sqlboiler migratedown migratedown1 migrateup migrateup1 migrateredo test
