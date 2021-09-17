@@ -16,3 +16,6 @@
 
 # docker postgres
 .docker
+
+# routes
+routes.json

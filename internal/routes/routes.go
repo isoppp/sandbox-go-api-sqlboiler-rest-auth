@@ -2,26 +2,53 @@ package routes
 
 import (
 	"database/sql"
-	"time"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/handlers"
 
-	"github.com/go-chi/render"
+	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(db *sql.DB) *chi.Mux {
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
-	r.Use(render.SetContentType(render.ContentTypeJSON))
+func NewRouter(db *sql.DB) *echo.Echo {
+	e := echo.New()
+	bindRouteMiddlewares(e)
+	// routes
+	e.GET("/api/status", handlers.GetStatus)
 
-	r.Route("/api", func(r chi.Router) {
-		r.Mount("/", noVersioningRoutes(db))
-		r.Mount("/v1", v1Routes(db))
-	})
-	return r
+	exportRoutesJson(e)
+	return e
+}
+
+func exportRoutesJson(e *echo.Echo) {
+	data, err := json.MarshalIndent(e.Routes(), "", "  ")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = ioutil.WriteFile("routes.json", data, 0644)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func bindRouteMiddlewares(e *echo.Echo) {
+	// middlewares
+	e.Pre(middleware.RemoveTrailingSlash())
+	e.Use(middleware.Logger())
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
+	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{}))
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{}))
+
+	// middlewares if production
+	//e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	//	AllowOrigins: []string{"https://labstack.com", "https://labstack.net"},
+	//	AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	//}))
+
+	// middlewares if dev
+	//e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+	//	println(reqBody, resBody)
+	//}))
 }

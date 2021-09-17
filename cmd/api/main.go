@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/routes"
 
@@ -24,12 +23,6 @@ func main() {
 	}
 	defer db.Close()
 
-	r := routes.NewRouter(db)
-
-	log.Printf("server is running on port %v", cfg.Port)
-	err = http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), r)
-	if err != nil {
-		log.Fatalln("cannot run server:", err)
-		return
-	}
+	e := routes.NewRouter(db)
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", cfg.Port)))
 }
