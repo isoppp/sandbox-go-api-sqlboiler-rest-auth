@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"net/http"
+	"database/sql"
 	"time"
 
 	"github.com/go-chi/render"
@@ -10,15 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type Health struct {
-	OK bool `json:"ok"`
-}
-
-func (h *Health) Render(_ http.ResponseWriter, _ *http.Request) error {
-	return nil
-}
-
-func NewRouter() *chi.Mux {
+func NewRouter(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -27,14 +19,9 @@ func NewRouter() *chi.Mux {
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
-	r.Route("/api/", func(r chi.Router) {
-		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-			err := render.Render(w, r, &Health{OK: true})
-			if err != nil {
-				http.Error(w, http.StatusText(500), 500)
-				return
-			}
-		})
+	r.Route("/api", func(r chi.Router) {
+		r.Mount("/", noVersioningRoutes(db))
+		r.Mount("/v1", v1Routes(db))
 	})
 	return r
 }

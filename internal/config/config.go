@@ -2,12 +2,12 @@ package config
 
 import "github.com/caarlos0/env/v6"
 
-type EnvConfig struct {
+type Config struct {
 	Port string `env:"PORT,required"`
 }
 
-func NewEnvConfig() (*EnvConfig, error) {
-	config := EnvConfig{}
+func NewConfig() (*Config, error) {
+	config := Config{}
 	if err := env.Parse(&config); err != nil {
 		return &config, err
 	}
