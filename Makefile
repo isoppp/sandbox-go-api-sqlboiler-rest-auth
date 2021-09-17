@@ -11,6 +11,9 @@ dev:
 postgres:
 	docker-compose up -d
 
+sqlboiler:
+	go generate
+
 migrateup:
 	migrate -path $(MIGRATION_PATH) -database $(DEV_DATABASE_PATH) -verbose up
 
@@ -26,4 +29,4 @@ migratedown1:
 migrateredo:
 	make migratedown1 && make migrateup1
 
-.PHONY: run dev postgres migratedown migratedown1 migrateup migrateup1 migrateredo
+.PHONY: run dev postgres sqlboiler migratedown migratedown1 migrateup migrateup1 migrateredo

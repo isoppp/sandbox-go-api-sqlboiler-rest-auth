@@ -1,0 +1,8 @@
+[psql]
+dbname = "sandbox"
+host = "localhost"
+port = "5433"
+user = "postgres"
+pass = "postgres"
+sslmode = "disable"
+blacklist = ["schema_migrations"]
