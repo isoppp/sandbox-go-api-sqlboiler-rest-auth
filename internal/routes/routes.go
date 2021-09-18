@@ -14,25 +14,25 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(db *sql.DB, logger *zap.Logger) *echo.Echo {
+func NewRouter(db *sql.DB, l *zap.Logger) *echo.Echo {
+	h := handlers.NewHandler(db, l)
 	e := echo.New()
-	bindRouteMiddlewares(e, logger)
-	// routes
-	e.GET("/api/status", handlers.GetStatus)
+	bindRouteMiddlewares(e, l)
 
+	// routes
+	e.GET("/api/status", h.GetStatus)
+
+	bindRoutes(e, h)
 	exportRoutesJson(e)
 	return e
 }
 
-func exportRoutesJson(e *echo.Echo) {
-	data, err := json.MarshalIndent(e.Routes(), "", "  ")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = ioutil.WriteFile("routes.json", data, 0644)
-	if err != nil {
-		log.Fatalln(err)
-	}
+func bindRoutes(e *echo.Echo, h *handlers.Handlers) {
+	e.GET("/api/v1/users", h.GetUsers)
+	e.POST("/api/v1/users", h.CreateUser)
+	e.GET("/api/v1/users/:id", h.GetUser)
+	e.PATCH("/api/v1/users/:id", h.PatchUser)
+	e.DELETE("/api/v1/users/:id", h.DeleteUser)
 }
 
 func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger) {
@@ -50,7 +50,29 @@ func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger) {
 	//}))
 
 	// middlewares if dev
-	//e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-	//	println(reqBody, resBody)
-	//}))
+	slogger := logger.Sugar()
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		if len(reqBody) == 0 {
+			slogger.Debug("request body: ", "None")
+		} else {
+			slogger.Debug("request body: ", string(reqBody))
+		}
+
+		if len(resBody) == 0 {
+			slogger.Debug("response body: ", "No Content")
+		} else {
+			slogger.Debug("response body: ", string(resBody))
+		}
+	}))
+}
+
+func exportRoutesJson(e *echo.Echo) {
+	data, err := json.MarshalIndent(e.Routes(), "", "  ")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = ioutil.WriteFile("routes.json", data, 0644)
+	if err != nil {
+		log.Fatalln(err)
+	}
 }

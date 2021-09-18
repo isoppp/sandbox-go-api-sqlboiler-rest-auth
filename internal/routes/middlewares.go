@@ -44,7 +44,7 @@ func ZapLogger(log *zap.Logger) echo.MiddlewareFunc {
 			case n >= 500:
 				log.With(zap.Error(err)).Error("Server error", fields...)
 			case n >= 400:
-				log.With(zap.Error(err)).Warn("Client error", fields...)
+				log.Info("Client error", fields...)
 			case n >= 300:
 				log.Info("Redirection", fields...)
 			default:

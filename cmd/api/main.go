@@ -7,6 +7,8 @@ import (
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/routes"
 
+	"go.uber.org/zap/zapcore"
+
 	"go.uber.org/zap"
 
 	_ "github.com/lib/pq"
@@ -21,7 +23,11 @@ func main() {
 	}
 
 	// logger
-	logger, _ := zap.NewDevelopment()
+	zapConfig := zap.NewDevelopmentConfig()
+	encConfig := zap.NewDevelopmentEncoderConfig()
+	encConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	zapConfig.EncoderConfig = encConfig
+	logger, _ := zapConfig.Build()
 	defer func() {
 		_ = logger.Sync()
 	}()
