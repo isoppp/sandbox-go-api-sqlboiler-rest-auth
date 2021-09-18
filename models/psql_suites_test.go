@@ -10,6 +10,8 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("Roles", testRolesUpsert)
 
+	t.Run("Sessions", testSessionsUpsert)
+
 	t.Run("UserRoles", testUserRolesUpsert)
 
 	t.Run("Users", testUsersUpsert)
