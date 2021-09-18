@@ -7,14 +7,16 @@ import (
 	"log"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/handlers"
 
+	"go.uber.org/zap"
+
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(db *sql.DB) *echo.Echo {
+func NewRouter(db *sql.DB, logger *zap.Logger) *echo.Echo {
 	e := echo.New()
-	bindRouteMiddlewares(e)
+	bindRouteMiddlewares(e, logger)
 	// routes
 	e.GET("/api/status", handlers.GetStatus)
 
@@ -33,10 +35,10 @@ func exportRoutesJson(e *echo.Echo) {
 	}
 }
 
-func bindRouteMiddlewares(e *echo.Echo) {
+func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger) {
 	// middlewares
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(middleware.Logger())
+	e.Use(ZapLogger(logger))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
 	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{}))
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{}))
