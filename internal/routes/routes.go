@@ -28,6 +28,11 @@ func NewRouter(db *sql.DB, l *zap.Logger) *echo.Echo {
 }
 
 func bindRoutes(e *echo.Echo, h *handlers.Handlers) {
+	// session
+	e.POST("/api/v1/sessions", h.CreateSession)
+	e.DELETE("/api/v1/sessions", h.DeleteSession)
+
+	// users
 	e.GET("/api/v1/users", h.GetUsers)
 	e.POST("/api/v1/users", h.CreateUser)
 	e.GET("/api/v1/users/:id", h.GetUser)
