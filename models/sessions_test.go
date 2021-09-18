@@ -677,7 +677,7 @@ func testSessionsSelect(t *testing.T) {
 }
 
 var (
-	sessionDBTypes = map[string]string{`ID`: `integer`, `UserID`: `integer`, `ExpiresAt`: `timestamp without time zone`, `CreatedAt`: `timestamp with time zone`}
+	sessionDBTypes = map[string]string{`ID`: `uuid`, `UserID`: `integer`, `ExpiresAt`: `timestamp without time zone`, `CreatedAt`: `timestamp with time zone`}
 	_              = bytes.MinRead
 )
 
