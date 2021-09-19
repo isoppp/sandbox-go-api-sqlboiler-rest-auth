@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/scookie"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -40,20 +40,34 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 
-	var session models.Session
+	var s models.Session
 	var uid, _ = uuid.NewUUID()
-	session.ID = uid.String()
-	session.UserID = u.ID
-	session.ExpiresAt = time.Now().Add(time.Hour * 24 * 30)
-	err = session.Insert(ctx, h.db, boil.Infer())
+	s.ID = uid.String()
+	s.UserID = u.ID
+	s.ExpiresAt = time.Now().Add(time.Hour * 24 * 30)
+	err = s.Insert(ctx, h.db, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
+	sc := scookie.NewSecureCookie()
+	encoded, err := sc.Encode("session", s.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	cookie := &http.Cookie{
+		Name:     "session",
+		Value:    encoded,
+		Path:     "/",
+		Expires:  time.Now().Add(time.Hour * 24 * 30),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: 2,
+	}
+	c.SetCookie(cookie)
 	return c.NoContent(http.StatusNoContent)
 }
 
 func (h *Handlers) DeleteSession(c echo.Context) error {
-	//ctx := context.Background()
-	return errors.New("not implemented")
+	return c.NoContent(http.StatusNoContent)
 }
