@@ -7,6 +7,8 @@ import (
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/routes"
 
+	"github.com/volatiletech/sqlboiler/v4/boil"
+
 	"go.uber.org/zap/zapcore"
 
 	"go.uber.org/zap"
@@ -41,6 +43,9 @@ func main() {
 	defer func() {
 		_ = db.Close()
 	}()
+
+	// sqlboiler debug mode
+	boil.DebugMode = true
 
 	e := routes.NewRouter(db, logger)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", cfg.Port)))

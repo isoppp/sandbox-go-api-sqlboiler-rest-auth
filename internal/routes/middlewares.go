@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"database/sql"
 	"fmt"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/scookie"
+	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
 	"go.uber.org/zap"
@@ -9,6 +12,40 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
+
+func SessionRestorer(db *sql.DB) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			fmt.Println("test middleware")
+			sc := scookie.NewSecureCookie()
+
+			cv, err := c.Cookie("session")
+			if err != nil {
+				return next(c)
+			}
+
+			var dv string
+			err = sc.Decode("session", cv.Value, &dv)
+			if err != nil {
+				return echo.NewHTTPError(500, "cannot decode cookie", err)
+			}
+			fmt.Println("got cookie(session id): ", dv)
+
+			sess, err := models.FindSession(c.Request().Context(), db, dv)
+			if err != nil {
+				// maybe wrong cookie id?
+				return echo.NewHTTPError(500, "cannot get cookie, but got session id", dv, err)
+			}
+			user, err := sess.User().One(c.Request().Context(), db)
+			if err != nil {
+				return echo.NewHTTPError(500, "cannod find user from session relation", dv, err)
+			}
+			fmt.Println("got user in middleware", user)
+			c.Set("user", user)
+			return next(c)
+		}
+	}
+}
 
 func ZapLogger(log *zap.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
