@@ -17,7 +17,7 @@ import (
 func NewRouter(db *sql.DB, l *zap.Logger) *echo.Echo {
 	h := handlers.NewHandler(db, l)
 	e := echo.New()
-	bindRouteMiddlewares(e, l)
+	bindRouteMiddlewares(e, l, db)
 
 	// routes
 	e.GET("/api/status", h.GetStatus)
@@ -40,13 +40,14 @@ func bindRoutes(e *echo.Echo, h *handlers.Handlers) {
 	e.DELETE("/api/v1/users/:id", h.DeleteUser)
 }
 
-func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger) {
+func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger, db *sql.DB) {
 	// middlewares
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(ZapLogger(logger))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
 	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{}))
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{}))
+	e.Use(SessionRestorer(db))
 
 	// middlewares if production
 	//e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
