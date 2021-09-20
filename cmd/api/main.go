@@ -18,11 +18,7 @@ import (
 
 func main() {
 	// config
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
+	cfg := config.NewConfig()
 
 	// logger
 	zapConfig := zap.NewDevelopmentConfig()
