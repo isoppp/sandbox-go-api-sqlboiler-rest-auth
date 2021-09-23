@@ -6,18 +6,19 @@ import (
 	"io/ioutil"
 	"log"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
-	"sandbox-go-api-sqlboiler-rest-auth/internal/scookie"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
 
 func NewServer(cfg *config.Config, db *sql.DB, l *zap.Logger) *echo.Echo {
-	sc := scookie.NewSecureCookie(cfg)
+	sc := cookie.NewSecureCookie(cfg)
 	e := echo.New()
 	e.HideBanner = true
 	e.Debug = cfg.IsDev
 
+	bindGlobalMiddlewares(e, cfg, l, db, sc)
 	bindRoutes(e, cfg, l, db, sc)
 
 	if cfg.IsDev {

@@ -2,24 +2,19 @@ package handlers
 
 import (
 	"net/http"
-	"sandbox-go-api-sqlboiler-rest-auth/models"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
 
 	"github.com/labstack/echo/v4"
 )
 
-type CookieValue struct {
-	UserID int
-	Name   string
-}
+func GetStatus(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
 
-func (h *Handlers) GetStatus(c echo.Context) error {
-	var u *models.User
-	uv := c.Get("user")
-	if uv != nil {
-		u = uv.(*models.User)
-		h.logger.Debug("user data?", u)
+	u := cc.CurrentUser
+	if u != nil {
+		cc.ZapLogger.Debug("user data?", u)
 	} else {
-		h.logger.Debug("not set user session")
+		cc.ZapLogger.Debug("not set user session")
 	}
 	return c.String(http.StatusOK, "server is running")
 }

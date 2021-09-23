@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -25,13 +25,14 @@ type UsersData struct {
 	Users *[]PublicUser `json:"users"`
 }
 
-func (h *Handlers) GetUsers(c echo.Context) error {
-	ctx := context.Background()
+func GetUsers(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	ctx := cc.Request().Context()
 	var users []PublicUser
 	res := SuccessResponse{
 		Data: UsersData{Users: &users},
 	}
-	err := models.Users().Bind(ctx, h.db, &users)
+	err := models.Users().Bind(ctx, cc.DB, &users)
 	if err != nil {
 		c.Error(err)
 		return err
@@ -43,8 +44,9 @@ type UserData struct {
 	User *PublicUser `json:"user"`
 }
 
-func (h *Handlers) GetUser(c echo.Context) error {
-	ctx := context.Background()
+func GetUser(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	ctx := cc.Request().Context()
 	res := SuccessResponse{
 		Data: UserData{},
 	}
@@ -56,7 +58,7 @@ func (h *Handlers) GetUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	exists, err := models.UserExists(ctx, h.db, id)
+	exists, err := models.UserExists(ctx, cc.DB, id)
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
@@ -65,7 +67,7 @@ func (h *Handlers) GetUser(c echo.Context) error {
 	}
 
 	var users []*PublicUser
-	err = models.Users(qm.Where("id = ?", id)).Bind(ctx, h.db, &users)
+	err = models.Users(qm.Where("id = ?", id)).Bind(ctx, cc.DB, &users)
 	if err != nil {
 		c.Error(err)
 		return err
@@ -80,8 +82,9 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
-func (h *Handlers) CreateUser(c echo.Context) error {
-	ctx := context.Background()
+func CreateUser(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	ctx := cc.Request().Context()
 	res := SuccessResponse{
 		Data: UserData{},
 	}
@@ -93,7 +96,7 @@ func (h *Handlers) CreateUser(c echo.Context) error {
 		Email:          req.Email,
 		HashedPassword: req.Password,
 	}
-	err := u.Insert(ctx, h.db, boil.Infer())
+	err := u.Insert(ctx, cc.DB, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -110,12 +113,13 @@ func (h *Handlers) CreateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (h *Handlers) PatchUser(c echo.Context) error {
+func PatchUser(c echo.Context) error {
 	return errors.New("not implemented")
 }
 
-func (h *Handlers) DeleteUser(c echo.Context) error {
-	ctx := context.Background()
+func DeleteUser(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	ctx := cc.Request().Context()
 	var id int
 	err := echo.PathParamsBinder(c).
 		Int("id", &id).
@@ -123,19 +127,19 @@ func (h *Handlers) DeleteUser(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	exists, err := models.UserExists(ctx, h.db, id)
+	exists, err := models.UserExists(ctx, cc.DB, id)
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	u, err := models.FindUser(ctx, h.db, id)
+	u, err := models.FindUser(ctx, cc.DB, id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	_, err = u.Delete(ctx, h.db)
+	_, err = u.Delete(ctx, cc.DB)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
