@@ -7,6 +7,7 @@ import (
 	"log"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/handlers"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -17,6 +18,7 @@ func NewServer(cfg *config.Config, db *sql.DB, l *zap.Logger) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.Debug = cfg.IsDev
+	e.HTTPErrorHandler = handlers.CustomHTTPErrorHandler
 
 	bindGlobalMiddlewares(e, cfg, l, db, sc)
 	bindRoutes(e, cfg, l, db, sc)
