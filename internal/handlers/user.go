@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/boilmodels"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
-	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -32,7 +32,7 @@ func GetUsers(c echo.Context) error {
 	res := SuccessResponse{
 		Data: UsersData{Users: &users},
 	}
-	err := models.Users().Bind(ctx, cc.DB, &users)
+	err := boilmodels.Users().Bind(ctx, cc.DB, &users)
 	if err != nil {
 		c.Error(err)
 		return err
@@ -58,7 +58,7 @@ func GetUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	exists, err := models.UserExists(ctx, cc.DB, id)
+	exists, err := boilmodels.UserExists(ctx, cc.DB, id)
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
@@ -67,7 +67,7 @@ func GetUser(c echo.Context) error {
 	}
 
 	var users []*PublicUser
-	err = models.Users(qm.Where("id = ?", id)).Bind(ctx, cc.DB, &users)
+	err = boilmodels.Users(qm.Where("id = ?", id)).Bind(ctx, cc.DB, &users)
 	if err != nil {
 		c.Error(err)
 		return err
@@ -92,7 +92,7 @@ func CreateUser(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	u := models.User{
+	u := boilmodels.User{
 		Email:          req.Email,
 		HashedPassword: req.Password,
 	}
@@ -127,14 +127,14 @@ func DeleteUser(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	exists, err := models.UserExists(ctx, cc.DB, id)
+	exists, err := boilmodels.UserExists(ctx, cc.DB, id)
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	u, err := models.FindUser(ctx, cc.DB, id)
+	u, err := boilmodels.FindUser(ctx, cc.DB, id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

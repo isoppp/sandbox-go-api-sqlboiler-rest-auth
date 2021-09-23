@@ -3,9 +3,9 @@ package middleware
 import (
 	"database/sql"
 	"fmt"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/boilmodels"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
-	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -41,7 +41,7 @@ func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.Sec
 			}
 			logger.Debug("got cookie(session id): ", dv)
 
-			sess, err := models.FindSession(c.Request().Context(), db, dv)
+			sess, err := boilmodels.FindSession(c.Request().Context(), db, dv)
 			if err != nil {
 				// maybe wrong cookie id?
 				return echo.NewHTTPError(500, "cannot get cookie, but got session id", dv, err)
