@@ -25,31 +25,32 @@ type UsersData struct {
 	Users *[]PublicUser `json:"users"`
 }
 
+type UserData struct {
+	User *PublicUser `json:"user"`
+}
+
+type CreateUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func GetUsers(c echo.Context) error {
 	cc := c.(*middleware.CustomContext)
 	ctx := cc.Request().Context()
 	var users []PublicUser
-	res := SuccessResponse{
-		Data: UsersData{Users: &users},
-	}
 	err := boilmodels.Users().Bind(ctx, cc.DB, &users)
 	if err != nil {
 		c.Error(err)
 		return err
 	}
-	return c.JSON(http.StatusOK, res)
-}
-
-type UserData struct {
-	User *PublicUser `json:"user"`
+	return c.JSON(http.StatusOK, JsonSuccessResponse(UsersData{
+		Users: &users,
+	}))
 }
 
 func GetUser(c echo.Context) error {
 	cc := c.(*middleware.CustomContext)
 	ctx := cc.Request().Context()
-	res := SuccessResponse{
-		Data: UserData{},
-	}
 	var id int
 	err := echo.PathParamsBinder(c).
 		Int("id", &id).
@@ -72,22 +73,15 @@ func GetUser(c echo.Context) error {
 		c.Error(err)
 		return err
 	}
-	res.Data = &users[0]
 
-	return c.JSON(http.StatusOK, res)
-}
-
-type CreateUserRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
+		User: users[0],
+	}))
 }
 
 func CreateUser(c echo.Context) error {
 	cc := c.(*middleware.CustomContext)
 	ctx := cc.Request().Context()
-	res := SuccessResponse{
-		Data: UserData{},
-	}
 	req := new(CreateUserRequest)
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -106,11 +100,10 @@ func CreateUser(c echo.Context) error {
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
-	res.Data = UserData{
-		User: &pu,
-	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
+		User: &pu,
+	}))
 }
 
 func PatchUser(c echo.Context) error {
