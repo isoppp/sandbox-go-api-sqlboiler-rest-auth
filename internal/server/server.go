@@ -18,6 +18,7 @@ func NewServer(cfg *config.Config, db *sql.DB, l *zap.Logger) *echo.Echo {
 	e.HideBanner = true
 	e.Debug = cfg.IsDev
 
+	bindGlobalMiddlewares(e, cfg, l, db, sc)
 	bindRoutes(e, cfg, l, db, sc)
 
 	if cfg.IsDev {

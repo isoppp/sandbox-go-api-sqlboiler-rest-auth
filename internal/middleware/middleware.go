@@ -1,8 +1,9 @@
-package server
+package middleware
 
 import (
 	"database/sql"
 	"fmt"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -14,9 +15,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func SetCustomContext(cfg *config.Config, l *zap.SugaredLogger, db *sql.DB, sc *securecookie.SecureCookie) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			cc := NewCustomContext(c, cfg, l, db, sc)
+			return next(cc)
+		}
+	}
+}
+
 func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.SecureCookie) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			cc := c.(*CustomContext)
 			cv, err := c.Cookie("session")
 			if err != nil {
 				return next(c)
@@ -39,13 +50,13 @@ func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.Sec
 				return echo.NewHTTPError(500, "cannod find user from session relation", dv, err)
 			}
 			logger.Debug("got user in middleware", user)
-			c.Set("user", user)
+			cc.CurrentUser = user
 			return next(c)
 		}
 	}
 }
 
-func ZapLogger(log *zap.Logger) echo.MiddlewareFunc {
+func RequestZapLogger(log *zap.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()

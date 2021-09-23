@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -19,22 +19,23 @@ type CreateSessionRequest struct {
 	Password string `json:"password"`
 }
 
-func (h *Handlers) CreateSession(c echo.Context) error {
-	ctx := context.Background()
+func CreateSession(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	ctx := cc.Request().Context()
 	req := new(CreateUserRequest)
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	ok, _ := models.Users(qm.Where("email = ?", req.Email)).Exists(ctx, h.db)
+	ok, _ := models.Users(qm.Where("email = ?", req.Email)).Exists(ctx, cc.DB)
 	if !ok {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
-	u, err := models.Users(qm.Where("email = ?", req.Email)).One(ctx, h.db)
+	u, err := models.Users(qm.Where("email = ?", req.Email)).One(ctx, cc.DB)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	h.logger.Info(u)
+	cc.ZapLogger.Info(u)
 	if u.HashedPassword != req.Password {
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
@@ -44,12 +45,12 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 	s.ID = uid.String()
 	s.UserID = u.ID
 	s.ExpiresAt = time.Now().Add(time.Hour * 24 * 30)
-	err = s.Insert(ctx, h.db, boil.Infer())
+	err = s.Insert(ctx, cc.DB, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	encoded, err := h.secureCookie.Encode("session", s.ID)
+	encoded, err := cc.SecureCookie.Encode("session", s.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -58,7 +59,7 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 		Value:    encoded,
 		Path:     "/",
 		Expires:  time.Now().Add(time.Hour * 24 * 30),
-		Secure:   !h.cfg.IsDev,
+		Secure:   !cc.Config.IsDev,
 		HttpOnly: true,
 		SameSite: 2,
 	}
@@ -66,6 +67,8 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handlers) DeleteSession(c echo.Context) error {
+func DeleteSession(c echo.Context) error {
+	//cc := c.(*customcontext.CustomContext)
+	//ctx := cc.Request().Context()
 	return c.NoContent(http.StatusNoContent)
 }
