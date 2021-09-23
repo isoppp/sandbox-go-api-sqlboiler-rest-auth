@@ -1,4 +1,4 @@
-package scookie
+package cookie
 
 import (
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"

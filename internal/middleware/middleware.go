@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -28,13 +29,13 @@ func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.Sec
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cc := c.(*CustomContext)
-			cv, err := c.Cookie("session")
+			cv, err := c.Cookie(cookie.SessionCookieKeyName)
 			if err != nil {
 				return next(c)
 			}
 
 			var dv string
-			err = sc.Decode("session", cv.Value, &dv)
+			err = sc.Decode(cookie.SecureCookieSessionKeyName, cv.Value, &dv)
 			if err != nil {
 				return echo.NewHTTPError(500, "cannot decode cookie", err)
 			}

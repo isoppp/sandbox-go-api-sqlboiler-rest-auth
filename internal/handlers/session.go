@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"strconv"
@@ -41,7 +42,10 @@ func CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 
-	expirationDays := strconv.Atoi(cc.Config.SessionExpirationDays)
+	expirationDays, err := strconv.Atoi(cc.Config.SessionExpirationDays)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
 
 	var s models.Session
 	var uid, _ = uuid.NewUUID()
@@ -53,13 +57,13 @@ func CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	encoded, err := cc.SecureCookie.Encode("session", s.ID)
+	encoded, err := cc.SecureCookie.Encode(cookie.SecureCookieSessionKeyName, s.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	cookie := &http.Cookie{
-		Name:     "session",
+	ck := &http.Cookie{
+		Name:     cookie.SessionCookieKeyName,
 		Value:    encoded,
 		Path:     "/",
 		Expires:  time.Now().Add(time.Hour * 24 * time.Duration(expirationDays)),
@@ -67,7 +71,7 @@ func CreateSession(c echo.Context) error {
 		HttpOnly: true,
 		SameSite: 2,
 	}
-	c.SetCookie(cookie)
+	c.SetCookie(ck)
 	return c.NoContent(http.StatusNoContent)
 }
 
