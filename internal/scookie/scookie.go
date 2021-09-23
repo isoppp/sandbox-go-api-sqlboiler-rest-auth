@@ -1,10 +1,12 @@
 package scookie
 
 import (
+	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
+
 	"github.com/gorilla/securecookie"
 )
 
-func NewSecureCookie() *securecookie.SecureCookie {
-	var hashKey = []byte("jkb2kJU4C6ad11DOFElCYMhtF8kvw75n")
+func NewSecureCookie(cfg *config.Config) *securecookie.SecureCookie {
+	var hashKey = []byte(cfg.SecretKey)
 	return securecookie.New(hashKey, nil)
 }

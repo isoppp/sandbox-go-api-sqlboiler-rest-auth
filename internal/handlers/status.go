@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 
@@ -18,9 +17,9 @@ func (h *Handlers) GetStatus(c echo.Context) error {
 	uv := c.Get("user")
 	if uv != nil {
 		u = uv.(*models.User)
-		fmt.Println("user data?", u)
+		h.logger.Debug("user data?", u)
 	} else {
-		fmt.Println("not set user session")
+		h.logger.Debug("not set user session")
 	}
 	return c.String(http.StatusOK, "server is running")
 }

@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	appConfig *config
+	appConfig *Config
 	once      sync.Once
 )
 
-type config struct {
+type Config struct {
 	Port       string // flag and env
 	IsDev      bool   // flag
 	DBHost     string // env
@@ -23,7 +23,7 @@ type config struct {
 	SecretKey  string // env
 }
 
-func (c *config) GetDataSourceName() string {
+func (c *Config) GetDataSourceName() string {
 	sslmode := "enable"
 	if c.IsDev {
 		sslmode = "disable"
@@ -34,14 +34,12 @@ func (c *config) GetDataSourceName() string {
 	)
 }
 
-func NewConfig() *config {
+func NewConfig() *Config {
 	once.Do(func() {
 		var isDev bool
 		flag.BoolVar(&isDev, "dev", false, "enable development mode")
 		flag.Parse()
-		fmt.Println(isDev)
-
-		appConfig = &config{
+		appConfig = &Config{
 			Port:       getEnv("PORT", "8081"),
 			IsDev:      isDev,
 			DBHost:     getEnv("MY_DB_HOST", "localhost"),
@@ -50,6 +48,10 @@ func NewConfig() *config {
 			DBUser:     getEnv("MY_DB_USER", "postgres"),
 			DBPassword: getEnv("MY_DB_PASSWORD", "postgres"),
 			SecretKey:  getEnv("MY_SECRET_KEY", "12345678901234567890123456789012"),
+		}
+
+		if isDev {
+			fmt.Println("============ Running app on development mode ============")
 		}
 	})
 	return appConfig
