@@ -13,14 +13,15 @@ var (
 )
 
 type Config struct {
-	Port       string // flag and env
-	IsDev      bool   // flag
-	DBHost     string // env
-	DBPort     string // env
-	DBName     string // env
-	DBUser     string // env
-	DBPassword string // env
-	SecretKey  string // env
+	Port                  string // flag and env
+	IsDev                 bool   // flag
+	DBHost                string // env
+	DBPort                string // env
+	DBName                string // env
+	DBUser                string // env
+	DBPassword            string // env
+	SecretKey             string // env
+	SessionExpirationDays string // env
 }
 
 func (c *Config) GetDataSourceName() string {
@@ -40,14 +41,15 @@ func NewConfig() *Config {
 		flag.BoolVar(&isDev, "dev", false, "enable development mode")
 		flag.Parse()
 		appConfig = &Config{
-			Port:       getEnv("PORT", "8081"),
-			IsDev:      isDev,
-			DBHost:     getEnv("MY_DB_HOST", "localhost"),
-			DBPort:     getEnv("MY_DB_PORT", "5433"),
-			DBName:     getEnv("MY_DB_NAME", "sandbox"),
-			DBUser:     getEnv("MY_DB_USER", "postgres"),
-			DBPassword: getEnv("MY_DB_PASSWORD", "postgres"),
-			SecretKey:  getEnv("MY_SECRET_KEY", "12345678901234567890123456789012"),
+			Port:                  getEnv("PORT", "8081"),
+			IsDev:                 isDev,
+			DBHost:                getEnv("MY_DB_HOST", "localhost"),
+			DBPort:                getEnv("MY_DB_PORT", "5433"),
+			DBName:                getEnv("MY_DB_NAME", "sandbox"),
+			DBUser:                getEnv("MY_DB_USER", "postgres"),
+			DBPassword:            getEnv("MY_DB_PASSWORD", "postgres"),
+			SecretKey:             getEnv("MY_SECRET_KEY", "12345678901234567890123456789012"),
+			SessionExpirationDays: getEnv("MY_SESSION_EXPIRATION_DAYS", "90"),
 		}
 
 		if isDev {

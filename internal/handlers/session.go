@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,11 +41,13 @@ func CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 
+	expirationDays := strconv.Atoi(cc.Config.SessionExpirationDays)
+
 	var s models.Session
 	var uid, _ = uuid.NewUUID()
 	s.ID = uid.String()
 	s.UserID = u.ID
-	s.ExpiresAt = time.Now().Add(time.Hour * 24 * 30)
+	s.ExpiresAt = time.Now().Add(time.Hour * 24 * time.Duration(expirationDays))
 	err = s.Insert(ctx, cc.DB, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
@@ -54,11 +57,12 @@ func CreateSession(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
+
 	cookie := &http.Cookie{
 		Name:     "session",
 		Value:    encoded,
 		Path:     "/",
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
+		Expires:  time.Now().Add(time.Hour * 24 * time.Duration(expirationDays)),
 		Secure:   !cc.Config.IsDev,
 		HttpOnly: true,
 		SameSite: 2,
