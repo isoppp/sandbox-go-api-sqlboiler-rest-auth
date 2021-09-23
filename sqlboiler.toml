@@ -1,3 +1,7 @@
+pkgname = "boilmodels"
+output = "internal/boilmodels"
+wipe = true
+
 [psql]
 dbname = "sandbox"
 host = "localhost"

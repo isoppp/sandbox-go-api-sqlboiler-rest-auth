@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/boilmodels"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
-	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"strconv"
 	"time"
 
@@ -29,11 +29,11 @@ func CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	ok, _ := models.Users(qm.Where("email = ?", req.Email)).Exists(ctx, cc.DB)
+	ok, _ := boilmodels.Users(qm.Where("email = ?", req.Email)).Exists(ctx, cc.DB)
 	if !ok {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
-	u, err := models.Users(qm.Where("email = ?", req.Email)).One(ctx, cc.DB)
+	u, err := boilmodels.Users(qm.Where("email = ?", req.Email)).One(ctx, cc.DB)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -47,7 +47,7 @@ func CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	var s models.Session
+	var s boilmodels.Session
 	var uid, _ = uuid.NewUUID()
 	s.ID = uid.String()
 	s.UserID = u.ID

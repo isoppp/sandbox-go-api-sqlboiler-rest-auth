@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"database/sql"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/boilmodels"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
-	"sandbox-go-api-sqlboiler-rest-auth/models"
 
 	"github.com/gorilla/securecookie"
 	"github.com/labstack/echo/v4"
@@ -16,7 +16,7 @@ type CustomContext struct {
 	ZapLogger    *zap.SugaredLogger
 	DB           *sql.DB
 	SecureCookie *securecookie.SecureCookie
-	CurrentUser  *models.User
+	CurrentUser  *boilmodels.User
 }
 
 func NewCustomContext(c echo.Context, cfg *config.Config, l *zap.SugaredLogger, db *sql.DB, sc *securecookie.SecureCookie) *CustomContext {

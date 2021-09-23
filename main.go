@@ -1,6 +1,6 @@
 package main
 
-//go:generate sqlboiler --wipe psql
+//go:generate sqlboiler psql
 
 func main() {
 }
