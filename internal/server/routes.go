@@ -1,11 +1,11 @@
-package routes
+package server
 
 import (
 	"database/sql"
-	"encoding/json"
-	"io/ioutil"
-	"log"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/handlers"
+
+	"github.com/gorilla/securecookie"
 
 	"go.uber.org/zap"
 
@@ -14,20 +14,13 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(db *sql.DB, l *zap.Logger) *echo.Echo {
-	h := handlers.NewHandler(db, l)
-	e := echo.New()
-	bindRouteMiddlewares(e, l, db)
+func bindRoutes(e *echo.Echo, cfg *config.Config, l *zap.Logger, db *sql.DB, sc *securecookie.SecureCookie) {
+	h := handlers.NewHandler(cfg, db, l, sc)
+	bindGlobalMiddlewares(e, cfg, l, db, sc)
 
-	// routes
+	// status
 	e.GET("/api/status", h.GetStatus)
 
-	bindRoutes(e, h)
-	exportRoutesJson(e)
-	return e
-}
-
-func bindRoutes(e *echo.Echo, h *handlers.Handlers) {
 	// session
 	e.POST("/api/v1/sessions", h.CreateSession)
 	e.DELETE("/api/v1/sessions", h.DeleteSession)
@@ -40,14 +33,15 @@ func bindRoutes(e *echo.Echo, h *handlers.Handlers) {
 	e.DELETE("/api/v1/users/:id", h.DeleteUser)
 }
 
-func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger, db *sql.DB) {
+func bindGlobalMiddlewares(e *echo.Echo, cfg *config.Config, logger *zap.Logger, db *sql.DB, sc *securecookie.SecureCookie) {
+	sl := logger.Sugar()
 	// middlewares
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(ZapLogger(logger))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
 	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{}))
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{}))
-	e.Use(SessionRestorer(db))
+	e.Use(SessionRestorer(db, sl, sc))
 
 	// middlewares if production
 	//e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -56,29 +50,19 @@ func bindRouteMiddlewares(e *echo.Echo, logger *zap.Logger, db *sql.DB) {
 	//}))
 
 	// middlewares if dev
-	slogger := logger.Sugar()
-	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-		if len(reqBody) == 0 {
-			slogger.Debug("request body: ", "None")
-		} else {
-			slogger.Debug("request body: ", string(reqBody))
-		}
+	if cfg.IsDev {
+		e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+			if len(reqBody) == 0 {
+				sl.Debug("request body: ", "None")
+			} else {
+				sl.Debug("request body: ", string(reqBody))
+			}
 
-		if len(resBody) == 0 {
-			slogger.Debug("response body: ", "No Content")
-		} else {
-			slogger.Debug("response body: ", string(resBody))
-		}
-	}))
-}
-
-func exportRoutesJson(e *echo.Echo) {
-	data, err := json.MarshalIndent(e.Routes(), "", "  ")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = ioutil.WriteFile("routes.json", data, 0644)
-	if err != nil {
-		log.Fatalln(err)
+			if len(resBody) == 0 {
+				sl.Debug("response body: ", "No Content")
+			} else {
+				sl.Debug("response body: ", string(resBody))
+			}
+		}))
 	}
 }

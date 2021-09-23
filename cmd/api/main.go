@@ -5,48 +5,44 @@ import (
 	"fmt"
 	"log"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/config"
-	"sandbox-go-api-sqlboiler-rest-auth/internal/routes"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/logger"
+	"sandbox-go-api-sqlboiler-rest-auth/internal/server"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
-
-	"go.uber.org/zap/zapcore"
-
-	"go.uber.org/zap"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	// config
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
-
-	// logger
-	zapConfig := zap.NewDevelopmentConfig()
-	encConfig := zap.NewDevelopmentEncoderConfig()
-	encConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	zapConfig.EncoderConfig = encConfig
-	logger, _ := zapConfig.Build()
-	defer func() {
-		_ = logger.Sync()
-	}()
+	cfg := config.NewConfig()
 
 	// db
-	connStr := "host=localhost port=5433 dbname=sandbox user=postgres password=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("postgres", cfg.GetDataSourceName())
 	if err != nil {
-		log.Fatalln("cannot open the database")
+		log.Fatalln("cannot open the database", cfg.GetDataSourceName())
 	}
 	defer func() {
 		_ = db.Close()
 	}()
 
-	// sqlboiler debug mode
-	boil.DebugMode = true
+	// enable debug mode
+	boil.DebugMode = cfg.IsDev
 
-	e := routes.NewRouter(db, logger)
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", cfg.Port)))
+	// logger
+	zl, err := logger.NewLogger(cfg)
+	if err != nil {
+		log.Fatalln("cannot create logger")
+	}
+	defer func() {
+		_ = zl.Sync()
+	}()
+
+	// router
+	e := server.NewServer(cfg, db, zl)
+
+	err = e.Start(fmt.Sprintf(":%s", cfg.Port))
+	if err != nil {
+		zl.Sugar().Fatal(err)
+	}
 }

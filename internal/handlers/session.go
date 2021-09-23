@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"sandbox-go-api-sqlboiler-rest-auth/internal/scookie"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
 
@@ -35,7 +34,7 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	h.slogger.Info(u)
+	h.logger.Info(u)
 	if u.HashedPassword != req.Password {
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
@@ -50,8 +49,7 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	sc := scookie.NewSecureCookie()
-	encoded, err := sc.Encode("session", s.ID)
+	encoded, err := h.secureCookie.Encode("session", s.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -60,7 +58,7 @@ func (h *Handlers) CreateSession(c echo.Context) error {
 		Value:    encoded,
 		Path:     "/",
 		Expires:  time.Now().Add(time.Hour * 24 * 30),
-		Secure:   true,
+		Secure:   !h.cfg.IsDev,
 		HttpOnly: true,
 		SameSite: 2,
 	}

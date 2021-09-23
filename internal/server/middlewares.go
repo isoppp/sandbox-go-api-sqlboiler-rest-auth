@@ -1,11 +1,12 @@
-package routes
+package server
 
 import (
 	"database/sql"
 	"fmt"
-	"sandbox-go-api-sqlboiler-rest-auth/internal/scookie"
 	"sandbox-go-api-sqlboiler-rest-auth/models"
 	"time"
+
+	"github.com/gorilla/securecookie"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -13,12 +14,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func SessionRestorer(db *sql.DB) echo.MiddlewareFunc {
+func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.SecureCookie) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			fmt.Println("test middleware")
-			sc := scookie.NewSecureCookie()
-
 			cv, err := c.Cookie("session")
 			if err != nil {
 				return next(c)
@@ -29,7 +27,7 @@ func SessionRestorer(db *sql.DB) echo.MiddlewareFunc {
 			if err != nil {
 				return echo.NewHTTPError(500, "cannot decode cookie", err)
 			}
-			fmt.Println("got cookie(session id): ", dv)
+			logger.Debug("got cookie(session id): ", dv)
 
 			sess, err := models.FindSession(c.Request().Context(), db, dv)
 			if err != nil {
@@ -40,7 +38,7 @@ func SessionRestorer(db *sql.DB) echo.MiddlewareFunc {
 			if err != nil {
 				return echo.NewHTTPError(500, "cannod find user from session relation", dv, err)
 			}
-			fmt.Println("got user in middleware", user)
+			logger.Debug("got user in middleware", user)
 			c.Set("user", user)
 			return next(c)
 		}
