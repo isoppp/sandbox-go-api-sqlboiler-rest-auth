@@ -14,9 +14,9 @@ import (
 )
 
 type PublicUser struct {
-	ID    int      `json:"id"`
-	Email string   `json:"email"`
-	Roles []string `json:"roles,omitempty"`
+	ID    int                  `json:"id"`
+	Email string               `json:"email"`
+	Roles boilmodels.RoleSlice `json:"roles,omitempty"`
 }
 
 type UsersData struct {
@@ -39,17 +39,11 @@ func Me(c echo.Context) error {
 	if cu == nil {
 		return echo.NewHTTPError(http.StatusForbidden, http.StatusText(http.StatusForbidden))
 	}
-
-	var roles []string
-	for i := range cu.R.Roles {
-		roles = append(roles, cu.R.Roles[i].Name)
-	}
-
 	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
 		User: &PublicUser{
 			ID:    cu.ID,
 			Email: cu.Email,
-			Roles: roles,
+			Roles: cu.R.Roles,
 		},
 	}))
 }
@@ -128,14 +122,11 @@ func CreateUser(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	var roles []string
-	for i := range u.R.Roles {
-		roles = append(roles, u.R.Roles[i].Name)
-	}
+
 	pu := PublicUser{
 		ID:    u.ID,
 		Email: u.Email,
-		Roles: roles,
+		Roles: u.R.Roles,
 	}
 
 	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
