@@ -494,14 +494,14 @@ func testRolesInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testRoleToManyUserRoles(t *testing.T) {
+func testRoleToManyUsers(t *testing.T) {
 	var err error
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
 	var a Role
-	var b, c UserRole
+	var b, c User
 
 	seed := randomize.NewSeed()
 	if err = randomize.Struct(seed, &a, roleDBTypes, true, roleColumnsWithDefault...); err != nil {
@@ -512,15 +512,12 @@ func testRoleToManyUserRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = randomize.Struct(seed, &b, userRoleDBTypes, false, userRoleColumnsWithDefault...); err != nil {
+	if err = randomize.Struct(seed, &b, userDBTypes, false, userColumnsWithDefault...); err != nil {
 		t.Fatal(err)
 	}
-	if err = randomize.Struct(seed, &c, userRoleDBTypes, false, userRoleColumnsWithDefault...); err != nil {
+	if err = randomize.Struct(seed, &c, userDBTypes, false, userColumnsWithDefault...); err != nil {
 		t.Fatal(err)
 	}
-
-	b.RoleID = a.ID
-	c.RoleID = a.ID
 
 	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
@@ -529,17 +526,26 @@ func testRoleToManyUserRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	check, err := a.UserRoles().All(ctx, tx)
+	_, err = tx.Exec("insert into \"user_role\" (\"role_id\", \"user_id\") values ($1, $2)", a.ID, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tx.Exec("insert into \"user_role\" (\"role_id\", \"user_id\") values ($1, $2)", a.ID, c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.Users().All(ctx, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	bFound, cFound := false, false
 	for _, v := range check {
-		if v.RoleID == b.RoleID {
+		if v.ID == b.ID {
 			bFound = true
 		}
-		if v.RoleID == c.RoleID {
+		if v.ID == c.ID {
 			cFound = true
 		}
 	}
@@ -552,18 +558,18 @@ func testRoleToManyUserRoles(t *testing.T) {
 	}
 
 	slice := RoleSlice{&a}
-	if err = a.L.LoadUserRoles(ctx, tx, false, (*[]*Role)(&slice), nil); err != nil {
+	if err = a.L.LoadUsers(ctx, tx, false, (*[]*Role)(&slice), nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(a.R.UserRoles); got != 2 {
+	if got := len(a.R.Users); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
-	a.R.UserRoles = nil
-	if err = a.L.LoadUserRoles(ctx, tx, true, &a, nil); err != nil {
+	a.R.Users = nil
+	if err = a.L.LoadUsers(ctx, tx, true, &a, nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(a.R.UserRoles); got != 2 {
+	if got := len(a.R.Users); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
@@ -572,7 +578,7 @@ func testRoleToManyUserRoles(t *testing.T) {
 	}
 }
 
-func testRoleToManyAddOpUserRoles(t *testing.T) {
+func testRoleToManyAddOpUsers(t *testing.T) {
 	var err error
 
 	ctx := context.Background()
@@ -580,15 +586,15 @@ func testRoleToManyAddOpUserRoles(t *testing.T) {
 	defer func() { _ = tx.Rollback() }()
 
 	var a Role
-	var b, c, d, e UserRole
+	var b, c, d, e User
 
 	seed := randomize.NewSeed()
 	if err = randomize.Struct(seed, &a, roleDBTypes, false, strmangle.SetComplement(rolePrimaryKeyColumns, roleColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
-	foreigners := []*UserRole{&b, &c, &d, &e}
+	foreigners := []*User{&b, &c, &d, &e}
 	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, userRoleDBTypes, false, strmangle.SetComplement(userRolePrimaryKeyColumns, userRoleColumnsWithoutDefault)...); err != nil {
+		if err = randomize.Struct(seed, x, userDBTypes, false, strmangle.SetComplement(userPrimaryKeyColumns, userColumnsWithoutDefault)...); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -603,13 +609,13 @@ func testRoleToManyAddOpUserRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	foreignersSplitByInsertion := [][]*UserRole{
+	foreignersSplitByInsertion := [][]*User{
 		{&b, &c},
 		{&d, &e},
 	}
 
 	for i, x := range foreignersSplitByInsertion {
-		err = a.AddUserRoles(ctx, tx, i != 0, x...)
+		err = a.AddUsers(ctx, tx, i != 0, x...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -617,34 +623,186 @@ func testRoleToManyAddOpUserRoles(t *testing.T) {
 		first := x[0]
 		second := x[1]
 
-		if a.ID != first.RoleID {
-			t.Error("foreign key was wrong value", a.ID, first.RoleID)
+		if first.R.Roles[0] != &a {
+			t.Error("relationship was not added properly to the slice")
 		}
-		if a.ID != second.RoleID {
-			t.Error("foreign key was wrong value", a.ID, second.RoleID)
-		}
-
-		if first.R.Role != &a {
-			t.Error("relationship was not added properly to the foreign slice")
-		}
-		if second.R.Role != &a {
-			t.Error("relationship was not added properly to the foreign slice")
+		if second.R.Roles[0] != &a {
+			t.Error("relationship was not added properly to the slice")
 		}
 
-		if a.R.UserRoles[i*2] != first {
+		if a.R.Users[i*2] != first {
 			t.Error("relationship struct slice not set to correct value")
 		}
-		if a.R.UserRoles[i*2+1] != second {
+		if a.R.Users[i*2+1] != second {
 			t.Error("relationship struct slice not set to correct value")
 		}
 
-		count, err := a.UserRoles().Count(ctx, tx)
+		count, err := a.Users().Count(ctx, tx)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if want := int64((i + 1) * 2); count != want {
 			t.Error("want", want, "got", count)
 		}
+	}
+}
+
+func testRoleToManySetOpUsers(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Role
+	var b, c, d, e User
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, roleDBTypes, false, strmangle.SetComplement(rolePrimaryKeyColumns, roleColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*User{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, userDBTypes, false, strmangle.SetComplement(userPrimaryKeyColumns, userColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.SetUsers(ctx, tx, false, &b, &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.Users().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.SetUsers(ctx, tx, true, &d, &e)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.Users().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	// The following checks cannot be implemented since we have no handle
+	// to these when we call Set(). Leaving them here as wishful thinking
+	// and to let people know there's dragons.
+	//
+	// if len(b.R.Roles) != 0 {
+	// 	t.Error("relationship was not removed properly from the slice")
+	// }
+	// if len(c.R.Roles) != 0 {
+	// 	t.Error("relationship was not removed properly from the slice")
+	// }
+	if d.R.Roles[0] != &a {
+		t.Error("relationship was not added properly to the slice")
+	}
+	if e.R.Roles[0] != &a {
+		t.Error("relationship was not added properly to the slice")
+	}
+
+	if a.R.Users[0] != &d {
+		t.Error("relationship struct slice not set to correct value")
+	}
+	if a.R.Users[1] != &e {
+		t.Error("relationship struct slice not set to correct value")
+	}
+}
+
+func testRoleToManyRemoveOpUsers(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Role
+	var b, c, d, e User
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, roleDBTypes, false, strmangle.SetComplement(rolePrimaryKeyColumns, roleColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*User{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, userDBTypes, false, strmangle.SetComplement(userPrimaryKeyColumns, userColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.AddUsers(ctx, tx, true, foreigners...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.Users().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 4 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.RemoveUsers(ctx, tx, foreigners[:2]...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.Users().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if len(b.R.Roles) != 0 {
+		t.Error("relationship was not removed properly from the slice")
+	}
+	if len(c.R.Roles) != 0 {
+		t.Error("relationship was not removed properly from the slice")
+	}
+	if d.R.Roles[0] != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+	if e.R.Roles[0] != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+
+	if len(a.R.Users) != 2 {
+		t.Error("should have preserved two relationships")
+	}
+
+	// Removal doesn't do a stable deletion for performance so we have to flip the order
+	if a.R.Users[1] != &d {
+		t.Error("relationship to d should have been preserved")
+	}
+	if a.R.Users[0] != &e {
+		t.Error("relationship to e should have been preserved")
 	}
 }
 

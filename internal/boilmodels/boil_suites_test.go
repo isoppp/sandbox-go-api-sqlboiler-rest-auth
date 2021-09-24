@@ -15,7 +15,6 @@ func TestParent(t *testing.T) {
 	t.Run("Posts", testPosts)
 	t.Run("Roles", testRoles)
 	t.Run("Sessions", testSessions)
-	t.Run("UserRoles", testUserRoles)
 	t.Run("Users", testUsers)
 }
 
@@ -23,7 +22,6 @@ func TestDelete(t *testing.T) {
 	t.Run("Posts", testPostsDelete)
 	t.Run("Roles", testRolesDelete)
 	t.Run("Sessions", testSessionsDelete)
-	t.Run("UserRoles", testUserRolesDelete)
 	t.Run("Users", testUsersDelete)
 }
 
@@ -31,7 +29,6 @@ func TestQueryDeleteAll(t *testing.T) {
 	t.Run("Posts", testPostsQueryDeleteAll)
 	t.Run("Roles", testRolesQueryDeleteAll)
 	t.Run("Sessions", testSessionsQueryDeleteAll)
-	t.Run("UserRoles", testUserRolesQueryDeleteAll)
 	t.Run("Users", testUsersQueryDeleteAll)
 }
 
@@ -39,7 +36,6 @@ func TestSliceDeleteAll(t *testing.T) {
 	t.Run("Posts", testPostsSliceDeleteAll)
 	t.Run("Roles", testRolesSliceDeleteAll)
 	t.Run("Sessions", testSessionsSliceDeleteAll)
-	t.Run("UserRoles", testUserRolesSliceDeleteAll)
 	t.Run("Users", testUsersSliceDeleteAll)
 }
 
@@ -47,7 +43,6 @@ func TestExists(t *testing.T) {
 	t.Run("Posts", testPostsExists)
 	t.Run("Roles", testRolesExists)
 	t.Run("Sessions", testSessionsExists)
-	t.Run("UserRoles", testUserRolesExists)
 	t.Run("Users", testUsersExists)
 }
 
@@ -55,7 +50,6 @@ func TestFind(t *testing.T) {
 	t.Run("Posts", testPostsFind)
 	t.Run("Roles", testRolesFind)
 	t.Run("Sessions", testSessionsFind)
-	t.Run("UserRoles", testUserRolesFind)
 	t.Run("Users", testUsersFind)
 }
 
@@ -63,7 +57,6 @@ func TestBind(t *testing.T) {
 	t.Run("Posts", testPostsBind)
 	t.Run("Roles", testRolesBind)
 	t.Run("Sessions", testSessionsBind)
-	t.Run("UserRoles", testUserRolesBind)
 	t.Run("Users", testUsersBind)
 }
 
@@ -71,7 +64,6 @@ func TestOne(t *testing.T) {
 	t.Run("Posts", testPostsOne)
 	t.Run("Roles", testRolesOne)
 	t.Run("Sessions", testSessionsOne)
-	t.Run("UserRoles", testUserRolesOne)
 	t.Run("Users", testUsersOne)
 }
 
@@ -79,7 +71,6 @@ func TestAll(t *testing.T) {
 	t.Run("Posts", testPostsAll)
 	t.Run("Roles", testRolesAll)
 	t.Run("Sessions", testSessionsAll)
-	t.Run("UserRoles", testUserRolesAll)
 	t.Run("Users", testUsersAll)
 }
 
@@ -87,7 +78,6 @@ func TestCount(t *testing.T) {
 	t.Run("Posts", testPostsCount)
 	t.Run("Roles", testRolesCount)
 	t.Run("Sessions", testSessionsCount)
-	t.Run("UserRoles", testUserRolesCount)
 	t.Run("Users", testUsersCount)
 }
 
@@ -95,7 +85,6 @@ func TestHooks(t *testing.T) {
 	t.Run("Posts", testPostsHooks)
 	t.Run("Roles", testRolesHooks)
 	t.Run("Sessions", testSessionsHooks)
-	t.Run("UserRoles", testUserRolesHooks)
 	t.Run("Users", testUsersHooks)
 }
 
@@ -106,8 +95,6 @@ func TestInsert(t *testing.T) {
 	t.Run("Roles", testRolesInsertWhitelist)
 	t.Run("Sessions", testSessionsInsert)
 	t.Run("Sessions", testSessionsInsertWhitelist)
-	t.Run("UserRoles", testUserRolesInsert)
-	t.Run("UserRoles", testUserRolesInsertWhitelist)
 	t.Run("Users", testUsersInsert)
 	t.Run("Users", testUsersInsertWhitelist)
 }
@@ -117,8 +104,6 @@ func TestInsert(t *testing.T) {
 func TestToOne(t *testing.T) {
 	t.Run("PostToUserUsingUser", testPostToOneUserUsingUser)
 	t.Run("SessionToUserUsingUser", testSessionToOneUserUsingUser)
-	t.Run("UserRoleToRoleUsingRole", testUserRoleToOneRoleUsingRole)
-	t.Run("UserRoleToUserUsingUser", testUserRoleToOneUserUsingUser)
 }
 
 // TestOneToOne tests cannot be run in parallel
@@ -128,10 +113,10 @@ func TestOneToOne(t *testing.T) {}
 // TestToMany tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToMany(t *testing.T) {
-	t.Run("RoleToUserRoles", testRoleToManyUserRoles)
+	t.Run("RoleToUsers", testRoleToManyUsers)
 	t.Run("UserToPosts", testUserToManyPosts)
 	t.Run("UserToSessions", testUserToManySessions)
-	t.Run("UserToUserRoles", testUserToManyUserRoles)
+	t.Run("UserToRoles", testUserToManyRoles)
 }
 
 // TestToOneSet tests cannot be run in parallel
@@ -139,8 +124,6 @@ func TestToMany(t *testing.T) {
 func TestToOneSet(t *testing.T) {
 	t.Run("PostToUserUsingPosts", testPostToOneSetOpUserUsingUser)
 	t.Run("SessionToUserUsingSessions", testSessionToOneSetOpUserUsingUser)
-	t.Run("UserRoleToRoleUsingUserRoles", testUserRoleToOneSetOpRoleUsingRole)
-	t.Run("UserRoleToUserUsingUserRoles", testUserRoleToOneSetOpUserUsingUser)
 }
 
 // TestToOneRemove tests cannot be run in parallel
@@ -158,25 +141,30 @@ func TestOneToOneRemove(t *testing.T) {}
 // TestToManyAdd tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToManyAdd(t *testing.T) {
-	t.Run("RoleToUserRoles", testRoleToManyAddOpUserRoles)
+	t.Run("RoleToUsers", testRoleToManyAddOpUsers)
 	t.Run("UserToPosts", testUserToManyAddOpPosts)
 	t.Run("UserToSessions", testUserToManyAddOpSessions)
-	t.Run("UserToUserRoles", testUserToManyAddOpUserRoles)
+	t.Run("UserToRoles", testUserToManyAddOpRoles)
 }
 
 // TestToManySet tests cannot be run in parallel
 // or deadlocks can occur.
-func TestToManySet(t *testing.T) {}
+func TestToManySet(t *testing.T) {
+	t.Run("RoleToUsers", testRoleToManySetOpUsers)
+	t.Run("UserToRoles", testUserToManySetOpRoles)
+}
 
 // TestToManyRemove tests cannot be run in parallel
 // or deadlocks can occur.
-func TestToManyRemove(t *testing.T) {}
+func TestToManyRemove(t *testing.T) {
+	t.Run("RoleToUsers", testRoleToManyRemoveOpUsers)
+	t.Run("UserToRoles", testUserToManyRemoveOpRoles)
+}
 
 func TestReload(t *testing.T) {
 	t.Run("Posts", testPostsReload)
 	t.Run("Roles", testRolesReload)
 	t.Run("Sessions", testSessionsReload)
-	t.Run("UserRoles", testUserRolesReload)
 	t.Run("Users", testUsersReload)
 }
 
@@ -184,7 +172,6 @@ func TestReloadAll(t *testing.T) {
 	t.Run("Posts", testPostsReloadAll)
 	t.Run("Roles", testRolesReloadAll)
 	t.Run("Sessions", testSessionsReloadAll)
-	t.Run("UserRoles", testUserRolesReloadAll)
 	t.Run("Users", testUsersReloadAll)
 }
 
@@ -192,7 +179,6 @@ func TestSelect(t *testing.T) {
 	t.Run("Posts", testPostsSelect)
 	t.Run("Roles", testRolesSelect)
 	t.Run("Sessions", testSessionsSelect)
-	t.Run("UserRoles", testUserRolesSelect)
 	t.Run("Users", testUsersSelect)
 }
 
@@ -200,7 +186,6 @@ func TestUpdate(t *testing.T) {
 	t.Run("Posts", testPostsUpdate)
 	t.Run("Roles", testRolesUpdate)
 	t.Run("Sessions", testSessionsUpdate)
-	t.Run("UserRoles", testUserRolesUpdate)
 	t.Run("Users", testUsersUpdate)
 }
 
@@ -208,6 +193,5 @@ func TestSliceUpdateAll(t *testing.T) {
 	t.Run("Posts", testPostsSliceUpdateAll)
 	t.Run("Roles", testRolesSliceUpdateAll)
 	t.Run("Sessions", testSessionsSliceUpdateAll)
-	t.Run("UserRoles", testUserRolesSliceUpdateAll)
 	t.Run("Users", testUsersSliceUpdateAll)
 }
