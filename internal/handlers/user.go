@@ -108,7 +108,7 @@ func CreateUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	r, err := boilmodels.Roles(qm.Where("name = ?", "User")).One(ctx, cc.DB)
+	r, err := boilmodels.Roles(qm.Where("name = ?", boilmodels.UserRoleTypeUser)).One(ctx, cc.DB)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

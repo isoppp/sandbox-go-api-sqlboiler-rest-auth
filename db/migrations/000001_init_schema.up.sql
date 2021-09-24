@@ -15,12 +15,12 @@ CREATE TABLE "sessions"
     "created_at" timestamptz      NOT NULL DEFAULT (now())
 );
 
+CREATE TYPE user_role_type AS ENUM('Admin', 'User');
+
 CREATE TABLE "roles"
 (
     "id"         SERIAL PRIMARY KEY,
-    "name"       varchar UNIQUE NOT NULL,
-    "created_at" timestamptz    NOT NULL DEFAULT (now()),
-    "updated_at" timestamptz    NOT NULL DEFAULT (now())
+    "name"       user_role_type UNIQUE NOT NULL
 );
 
 CREATE TABLE "user_role"
