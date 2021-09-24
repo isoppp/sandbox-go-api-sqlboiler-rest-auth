@@ -15,10 +15,11 @@ import (
 )
 
 type PublicUser struct {
-	ID        int       `boil:"id" json:"id"`
-	Email     string    `boil:"email" json:"email"`
-	CreatedAt time.Time `boil:"created_at" json:"created_at"`
-	UpdatedAt time.Time `boil:"updated_at" json:"updated_at"`
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Roles     []string  `json:"roles,omitempty"`
 }
 
 type UsersData struct {
@@ -86,19 +87,37 @@ func CreateUser(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+
+	r, err := boilmodels.Roles(qm.Where("name = ?", "User")).One(ctx, cc.DB)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	cc.ZapLogger.Info(r.Name)
+
 	u := boilmodels.User{
 		Email:          req.Email,
 		HashedPassword: req.Password,
 	}
-	err := u.Insert(ctx, cc.DB, boil.Infer())
+
+	err = u.Insert(ctx, cc.DB, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	err = u.SetRoles(ctx, cc.DB, false, r)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	var roles []string
+	for i := range u.R.Roles {
+		roles = append(roles, u.R.Roles[i].Name)
 	}
 	pu := PublicUser{
 		ID:        u.ID,
 		Email:     u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+		Roles:     roles,
 	}
 
 	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
