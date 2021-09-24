@@ -15,6 +15,7 @@ CREATE TABLE "sessions"
     "created_at" timestamptz      NOT NULL DEFAULT (now())
 );
 
+DROP TYPE IF EXISTS user_role_type;
 CREATE TYPE user_role_type AS ENUM('Admin', 'User');
 
 CREATE TABLE "roles"
