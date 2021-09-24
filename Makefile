@@ -17,6 +17,12 @@ postgres:
 sqlboiler:
 	go generate
 
+seed:
+	go run ./cmd/seed -dev
+
+resetdb:
+	migrate -path $(_MIGRATION_DIR) -database $(_MIGRATION_DB_PATH) -verbose drop -f && make migrateup && make seed
+
 migrateup:
 	migrate -path $(_MIGRATION_DIR) -database $(_MIGRATION_DB_PATH) -verbose up
 
@@ -35,4 +41,4 @@ migrateredo:
 test:
 	go test -v -cover ./...
 
-.PHONY: run dev devw postgres sqlboiler migratedown migratedown1 migrateup migrateup1 migrateredo test
+.PHONY: run dev devw postgres sqlboiler seed resetdb migratedown migratedown1 migrateup migrateup1 migrateredo test

@@ -72,14 +72,14 @@ var RoleWhere = struct {
 
 // RoleRels is where relationship names are stored.
 var RoleRels = struct {
-	UserRoles string
+	Users string
 }{
-	UserRoles: "UserRoles",
+	Users: "Users",
 }
 
 // roleR is where relationships are stored.
 type roleR struct {
-	UserRoles UserRoleSlice `boil:"UserRoles" json:"UserRoles" toml:"UserRoles" yaml:"UserRoles"`
+	Users UserSlice `boil:"Users" json:"Users" toml:"Users" yaml:"Users"`
 }
 
 // NewStruct creates a new relationship struct
@@ -372,30 +372,31 @@ func (q roleQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
-// UserRoles retrieves all the user_role's UserRoles with an executor.
-func (o *Role) UserRoles(mods ...qm.QueryMod) userRoleQuery {
+// Users retrieves all the user's Users with an executor.
+func (o *Role) Users(mods ...qm.QueryMod) userQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
+		qm.InnerJoin("\"user_role\" on \"users\".\"id\" = \"user_role\".\"user_id\""),
 		qm.Where("\"user_role\".\"role_id\"=?", o.ID),
 	)
 
-	query := UserRoles(queryMods...)
-	queries.SetFrom(query.Query, "\"user_role\"")
+	query := Users(queryMods...)
+	queries.SetFrom(query.Query, "\"users\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"\"user_role\".*"})
+		queries.SetSelect(query.Query, []string{"\"users\".*"})
 	}
 
 	return query
 }
 
-// LoadUserRoles allows an eager lookup of values, cached into the
+// LoadUsers allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (roleL) LoadUserRoles(ctx context.Context, e boil.ContextExecutor, singular bool, maybeRole interface{}, mods queries.Applicator) error {
+func (roleL) LoadUsers(ctx context.Context, e boil.ContextExecutor, singular bool, maybeRole interface{}, mods queries.Applicator) error {
 	var slice []*Role
 	var object *Role
 
@@ -433,8 +434,10 @@ func (roleL) LoadUserRoles(ctx context.Context, e boil.ContextExecutor, singular
 	}
 
 	query := NewQuery(
-		qm.From(`user_role`),
-		qm.WhereIn(`user_role.role_id in ?`, args...),
+		qm.Select("\"users\".id, \"users\".email, \"users\".hashed_password, \"users\".created_at, \"users\".updated_at, \"a\".\"role_id\""),
+		qm.From("\"users\""),
+		qm.InnerJoin("\"user_role\" as \"a\" on \"users\".\"id\" = \"a\".\"user_id\""),
+		qm.WhereIn("\"a\".\"role_id\" in ?", args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -442,22 +445,36 @@ func (roleL) LoadUserRoles(ctx context.Context, e boil.ContextExecutor, singular
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load user_role")
+		return errors.Wrap(err, "failed to eager load users")
 	}
 
-	var resultSlice []*UserRole
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice user_role")
+	var resultSlice []*User
+
+	var localJoinCols []int
+	for results.Next() {
+		one := new(User)
+		var localJoinCol int
+
+		err = results.Scan(&one.ID, &one.Email, &one.HashedPassword, &one.CreatedAt, &one.UpdatedAt, &localJoinCol)
+		if err != nil {
+			return errors.Wrap(err, "failed to scan eager loaded results for users")
+		}
+		if err = results.Err(); err != nil {
+			return errors.Wrap(err, "failed to plebian-bind eager loaded slice users")
+		}
+
+		resultSlice = append(resultSlice, one)
+		localJoinCols = append(localJoinCols, localJoinCol)
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on user_role")
+		return errors.Wrap(err, "failed to close results in eager load on users")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for user_role")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for users")
 	}
 
-	if len(userRoleAfterSelectHooks) != 0 {
+	if len(userAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -465,24 +482,25 @@ func (roleL) LoadUserRoles(ctx context.Context, e boil.ContextExecutor, singular
 		}
 	}
 	if singular {
-		object.R.UserRoles = resultSlice
+		object.R.Users = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &userRoleR{}
+				foreign.R = &userR{}
 			}
-			foreign.R.Role = object
+			foreign.R.Roles = append(foreign.R.Roles, object)
 		}
 		return nil
 	}
 
-	for _, foreign := range resultSlice {
+	for i, foreign := range resultSlice {
+		localJoinCol := localJoinCols[i]
 		for _, local := range slice {
-			if local.ID == foreign.RoleID {
-				local.R.UserRoles = append(local.R.UserRoles, foreign)
+			if local.ID == localJoinCol {
+				local.R.Users = append(local.R.Users, foreign)
 				if foreign.R == nil {
-					foreign.R = &userRoleR{}
+					foreign.R = &userR{}
 				}
-				foreign.R.Role = local
+				foreign.R.Roles = append(foreign.R.Roles, local)
 				break
 			}
 		}
@@ -491,57 +509,148 @@ func (roleL) LoadUserRoles(ctx context.Context, e boil.ContextExecutor, singular
 	return nil
 }
 
-// AddUserRoles adds the given related objects to the existing relationships
+// AddUsers adds the given related objects to the existing relationships
 // of the role, optionally inserting them as new records.
-// Appends related to o.R.UserRoles.
-// Sets related.R.Role appropriately.
-func (o *Role) AddUserRoles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserRole) error {
+// Appends related to o.R.Users.
+// Sets related.R.Roles appropriately.
+func (o *Role) AddUsers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*User) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			rel.RoleID = o.ID
 			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"user_role\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"role_id"}),
-				strmangle.WhereClause("\"", "\"", 2, userRolePrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.RoleID = o.ID
 		}
 	}
 
+	for _, rel := range related {
+		query := "insert into \"user_role\" (\"role_id\", \"user_id\") values ($1, $2)"
+		values := []interface{}{o.ID, rel.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, query)
+			fmt.Fprintln(writer, values)
+		}
+		_, err = exec.ExecContext(ctx, query, values...)
+		if err != nil {
+			return errors.Wrap(err, "failed to insert into join table")
+		}
+	}
 	if o.R == nil {
 		o.R = &roleR{
-			UserRoles: related,
+			Users: related,
 		}
 	} else {
-		o.R.UserRoles = append(o.R.UserRoles, related...)
+		o.R.Users = append(o.R.Users, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &userRoleR{
-				Role: o,
+			rel.R = &userR{
+				Roles: RoleSlice{o},
 			}
 		} else {
-			rel.R.Role = o
+			rel.R.Roles = append(rel.R.Roles, o)
 		}
 	}
 	return nil
+}
+
+// SetUsers removes all previously related items of the
+// role replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.Roles's Users accordingly.
+// Replaces o.R.Users with related.
+// Sets related.R.Roles's Users accordingly.
+func (o *Role) SetUsers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*User) error {
+	query := "delete from \"user_role\" where \"role_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	removeUsersFromRolesSlice(o, related)
+	if o.R != nil {
+		o.R.Users = nil
+	}
+	return o.AddUsers(ctx, exec, insert, related...)
+}
+
+// RemoveUsers relationships from objects passed in.
+// Removes related items from R.Users (uses pointer comparison, removal does not keep order)
+// Sets related.R.Roles.
+func (o *Role) RemoveUsers(ctx context.Context, exec boil.ContextExecutor, related ...*User) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	query := fmt.Sprintf(
+		"delete from \"user_role\" where \"role_id\" = $1 and \"user_id\" in (%s)",
+		strmangle.Placeholders(dialect.UseIndexPlaceholders, len(related), 2, 1),
+	)
+	values := []interface{}{o.ID}
+	for _, rel := range related {
+		values = append(values, rel.ID)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err = exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+	removeUsersFromRolesSlice(o, related)
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.Users {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.Users)
+			if ln > 1 && i < ln-1 {
+				o.R.Users[i] = o.R.Users[ln-1]
+			}
+			o.R.Users = o.R.Users[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+func removeUsersFromRolesSlice(o *Role, related []*User) {
+	for _, rel := range related {
+		if rel.R == nil {
+			continue
+		}
+		for i, ri := range rel.R.Roles {
+			if o.ID != ri.ID {
+				continue
+			}
+
+			ln := len(rel.R.Roles)
+			if ln > 1 && i < ln-1 {
+				rel.R.Roles[i] = rel.R.Roles[ln-1]
+			}
+			rel.R.Roles = rel.R.Roles[:ln-1]
+			break
+		}
+	}
 }
 
 // Roles retrieves all the records using an executor.

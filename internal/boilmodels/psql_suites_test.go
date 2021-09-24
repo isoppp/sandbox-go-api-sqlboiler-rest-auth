@@ -12,7 +12,5 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("Sessions", testSessionsUpsert)
 
-	t.Run("UserRoles", testUserRolesUpsert)
-
 	t.Run("Users", testUsersUpsert)
 }
