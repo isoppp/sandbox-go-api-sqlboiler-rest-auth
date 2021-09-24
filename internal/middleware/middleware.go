@@ -8,6 +8,8 @@ import (
 	"sandbox-go-api-sqlboiler-rest-auth/internal/cookie"
 	"time"
 
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+
 	"github.com/gorilla/securecookie"
 
 	"go.uber.org/zap"
@@ -46,7 +48,7 @@ func SessionRestorer(db *sql.DB, logger *zap.SugaredLogger, sc *securecookie.Sec
 				// maybe wrong cookie id?
 				return echo.NewHTTPError(500, "cannot get cookie, but got session id", dv, err)
 			}
-			user, err := sess.User().One(c.Request().Context(), db)
+			user, err := sess.User(qm.Load(boilmodels.UserRels.Roles)).One(c.Request().Context(), db)
 			if err != nil {
 				return echo.NewHTTPError(500, "cannod find user from session relation", dv, err)
 			}

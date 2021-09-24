@@ -21,6 +21,7 @@ func bindRoutes(e *echo.Echo, cfg *config.Config, l *zap.Logger, db *sql.DB, sc 
 	e.DELETE("/api/v1/sessions", handlers.DeleteSession)
 
 	// users
+	e.GET("/api/v1/me", handlers.Me)
 	e.GET("/api/v1/users", handlers.GetUsers)
 	e.POST("/api/v1/users", handlers.CreateUser)
 	e.GET("/api/v1/users/:id", handlers.GetUser)
