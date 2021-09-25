@@ -880,7 +880,7 @@ func testRolesSelect(t *testing.T) {
 }
 
 var (
-	roleDBTypes = map[string]string{`ID`: `integer`, `Name`: `enum.user_role_type('Admin','User')`}
+	roleDBTypes = map[string]string{`ID`: `integer`, `Name`: `enum.user_role_type('Admin','User','TEST_DUMMY1','TEST_DUMMY2')`}
 	_           = bytes.MinRead
 )
 

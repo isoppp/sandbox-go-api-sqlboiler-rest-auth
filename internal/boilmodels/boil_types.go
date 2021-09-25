@@ -53,6 +53,8 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 
 // Enum values for user_role_type
 const (
-	UserRoleTypeAdmin = "Admin"
-	UserRoleTypeUser  = "User"
+	UserRoleTypeAdmin       = "Admin"
+	UserRoleTypeUser        = "User"
+	UserRoleTypeTEST_DUMMY1 = "TEST_DUMMY1"
+	UserRoleTypeTEST_DUMMY2 = "TEST_DUMMY2"
 )

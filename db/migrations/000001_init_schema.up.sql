@@ -16,7 +16,7 @@ CREATE TABLE "sessions"
 );
 
 DROP TYPE IF EXISTS user_role_type;
-CREATE TYPE user_role_type AS ENUM('Admin', 'User');
+CREATE TYPE user_role_type AS ENUM('Admin', 'User', 'TEST_DUMMY1', 'TEST_DUMMY2');
 
 CREATE TABLE "roles"
 (

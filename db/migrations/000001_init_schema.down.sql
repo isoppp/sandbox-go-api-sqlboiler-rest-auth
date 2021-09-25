@@ -1,8 +1,6 @@
 DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS user_role;
-
-DROP TYPE user_role_type;
-
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS user_role_type;
