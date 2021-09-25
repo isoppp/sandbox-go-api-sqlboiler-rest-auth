@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/boilmodels"
 	"sandbox-go-api-sqlboiler-rest-auth/internal/middleware"
-	"time"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
 
@@ -15,10 +14,9 @@ import (
 )
 
 type PublicUser struct {
-	ID        int       `boil:"id" json:"id"`
-	Email     string    `boil:"email" json:"email"`
-	CreatedAt time.Time `boil:"created_at" json:"created_at"`
-	UpdatedAt time.Time `boil:"updated_at" json:"updated_at"`
+	ID    int                  `json:"id"`
+	Email string               `json:"email"`
+	Roles boilmodels.RoleSlice `json:"roles,omitempty"`
 }
 
 type UsersData struct {
@@ -34,6 +32,22 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
+func Me(c echo.Context) error {
+	cc := c.(*middleware.CustomContext)
+	cu := cc.CurrentUser
+	cc.ZapLogger.Info("cu:", cu)
+	if cu == nil {
+		return echo.NewHTTPError(http.StatusForbidden, http.StatusText(http.StatusForbidden))
+	}
+	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{
+		User: &PublicUser{
+			ID:    cu.ID,
+			Email: cu.Email,
+			Roles: cu.R.Roles,
+		},
+	}))
+}
+
 func GetUsers(c echo.Context) error {
 	cc := c.(*middleware.CustomContext)
 	ctx := cc.Request().Context()
@@ -43,6 +57,7 @@ func GetUsers(c echo.Context) error {
 		c.Error(err)
 		return err
 	}
+
 	return c.JSON(http.StatusOK, JsonSuccessResponse(UsersData{
 		Users: &users,
 	}))
@@ -86,19 +101,32 @@ func CreateUser(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+
+	r, err := boilmodels.Roles(qm.Where("name = ?", boilmodels.UserRoleTypeUser)).One(ctx, cc.DB)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	cc.ZapLogger.Info(r.Name)
+
 	u := boilmodels.User{
 		Email:          req.Email,
 		HashedPassword: req.Password,
 	}
-	err := u.Insert(ctx, cc.DB, boil.Infer())
+
+	err = u.Insert(ctx, cc.DB, boil.Infer())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+
+	err = u.SetRoles(ctx, cc.DB, false, r)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
 	pu := PublicUser{
-		ID:        u.ID,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:    u.ID,
+		Email: u.Email,
+		Roles: u.R.Roles,
 	}
 
 	return c.JSON(http.StatusOK, JsonSuccessResponse(UserData{

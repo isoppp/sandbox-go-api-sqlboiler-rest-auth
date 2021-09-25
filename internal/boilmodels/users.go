@@ -685,7 +685,7 @@ func (userL) LoadRoles(ctx context.Context, e boil.ContextExecutor, singular boo
 	}
 
 	query := NewQuery(
-		qm.Select("\"roles\".id, \"roles\".name, \"roles\".created_at, \"roles\".updated_at, \"a\".\"user_id\""),
+		qm.Select("\"roles\".id, \"roles\".name, \"a\".\"user_id\""),
 		qm.From("\"roles\""),
 		qm.InnerJoin("\"user_role\" as \"a\" on \"roles\".\"id\" = \"a\".\"role_id\""),
 		qm.WhereIn("\"a\".\"user_id\" in ?", args...),
@@ -706,7 +706,7 @@ func (userL) LoadRoles(ctx context.Context, e boil.ContextExecutor, singular boo
 		one := new(Role)
 		var localJoinCol int
 
-		err = results.Scan(&one.ID, &one.Name, &one.CreatedAt, &one.UpdatedAt, &localJoinCol)
+		err = results.Scan(&one.ID, &one.Name, &localJoinCol)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan eager loaded results for roles")
 		}
